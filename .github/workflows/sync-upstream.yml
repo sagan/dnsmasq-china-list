@@ -1,0 +1,46 @@
+# Requires change GitHub repository Settings - Actions > General - Workflow permissions: "Read and write permissions" - Save
+# If GitHub Action fails due to a merge conflict, fix it on local machine:
+#   git fetch upstream
+#   git rebase upstream/master
+#   # Resolve conflicts in your editor, then:
+#   git add .
+#   git rebase --continue
+#   git push origin mod --force
+name: Auto Sync with Upstream
+
+on:
+  schedule:
+    - cron: "0 20 * * *" # Runs daily (UTC time)
+  workflow_dispatch: # Allows you to trigger this manually from the Actions tab
+
+permissions:
+  contents: write
+
+jobs:
+  sync-and-rebase:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Fork
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Fetches full history, which is required for rebasing
+
+      - name: Configure Git Author
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Sync and Rebase
+        run: |
+          # 1. Add the original repository as a remote
+          git remote add upstream https://github.com/felixonmars/dnsmasq-china-list.git
+
+          # 2. Fetch the latest updates from upstream
+          git fetch upstream master
+
+          # 3. Rebase your fork's main branch on top of upstream/main
+          # This keeps your 1 custom patch commit at the very top
+          git rebase upstream/master
+
+          # 4. Force-push the updated history back to your fork
+          git push origin mod --force
